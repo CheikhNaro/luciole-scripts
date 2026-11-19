@@ -1048,6 +1048,19 @@ _install_categories() {
     chmod u+rwx,go-w -- "$STORE_DIR"
     install -m 0755 -- "$CATEGORY_MENU_SOURCE" "$STORE_DIR/menu.sh"
 
+    # Build and install the native Noctalia/Wayland dialog
+    if [[ -d "$SCRIPT_DIR/.dialog" ]]; then
+        if [[ ! -x "$SCRIPT_DIR/.dialog/luciole-dialog" ]]; then
+            _info "Compiling native Noctalia UI dialog (luciole-dialog)..."
+            make -C "$SCRIPT_DIR/.dialog" &>/dev/null || _warn "Could not compile luciole-dialog; zenity/yad fallback will be used."
+        fi
+        if [[ -x "$SCRIPT_DIR/.dialog/luciole-dialog" ]]; then
+            install -m 0755 -- "$SCRIPT_DIR/.dialog/luciole-dialog" "$STORE_DIR/luciole-dialog"
+            mkdir -p -- "$HOME/.local/bin"
+            install -m 0755 -- "$SCRIPT_DIR/.dialog/luciole-dialog" "$HOME/.local/bin/luciole-dialog"
+        fi
+    fi
+
     # Preserve the upstream group subfolders in the hidden store. The menu
     # script uses them as the second column of the category dialog.
     for group_idx in "${!GROUP_IDS[@]}"; do

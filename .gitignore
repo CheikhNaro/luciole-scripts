@@ -13,3 +13,7 @@ Output*/
 # Local test and output directories.
 test/
 tmp/
+
+# Dialog build artifacts
+.dialog/*.o
+.dialog/luciole-dialog

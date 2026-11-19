@@ -216,10 +216,21 @@ _collect_rows() {
         LC_ALL=C sort -z)
 }
 
+_get_dialog_bin() {
+    if [[ -x "$SCRIPT_DIR/luciole-dialog" ]]; then
+        printf "%s" "$SCRIPT_DIR/luciole-dialog"
+    elif [[ -x "$ROOT_DIR/.dialog/luciole-dialog" ]]; then
+        printf "%s" "$ROOT_DIR/.dialog/luciole-dialog"
+    elif command -v "luciole-dialog" &>/dev/null; then
+        command -v "luciole-dialog"
+    fi
+}
+
 _show_action_dialog() {
     local title=$1
     local i=0
     local user_selection=""
+    local dialog_bin=""
     local -a items=()
 
     if ((${#ROW_PATH[@]} == 0)); then
@@ -235,17 +246,18 @@ _show_action_dialog() {
         fi
     done
 
-    if command -v "luciole" &>/dev/null; then
-        user_selection=$(printf "%s\n" "${items[@]}" | luciole dialog --title "$title" --width 500 --height 485 2>/dev/null) || return 1
+    dialog_bin=$(_get_dialog_bin)
+    if [[ -n "$dialog_bin" ]]; then
+        user_selection=$(printf "%s\n" "${items[@]}" | "$dialog_bin" --title "$title" --width 450 --height 490 2>/dev/null) || return 1
     elif command -v "zenity" &>/dev/null; then
-        local -a dialog=(--title "$title" --list --no-markup --width=500 --height=485)
+        local -a dialog=(--title "$title" --list --no-markup --width=450 --height=490)
         dialog+=(--column "Action" --column "$(_i18n 'Directory')" --column "Path" --hide-column=3 --print-column=3)
         for i in "${!ROW_PATH[@]}"; do
             dialog+=("${ROW_DISPLAY[$i]}" "${ROW_FOLDER[$i]}" "${ROW_PATH[$i]}")
         done
         user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" --ok-label "$(_i18n 'OK')" --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
     elif command -v "yad" &>/dev/null; then
-        local -a dialog=(--title "$title" --list --no-markup --width=500 --height=485)
+        local -a dialog=(--title "$title" --list --no-markup --width=450 --height=490)
         dialog+=(--column "Action" --column "$(_i18n 'Directory')" --column "Path" --hide-column=3 --print-column=3)
         for i in "${!ROW_PATH[@]}"; do
             dialog+=("${ROW_DISPLAY[$i]}" "${ROW_FOLDER[$i]}" "${ROW_PATH[$i]}")
@@ -253,7 +265,7 @@ _show_action_dialog() {
         user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" --button="$(_i18n 'Cancel'):1" --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
         user_selection=${user_selection%|}
     else
-        printf "A dialog tool is required: luciole, zenity, or yad.\n" >&2
+        printf "A dialog tool is required: luciole-dialog, zenity, or yad.\n" >&2
         return 1
     fi
 
@@ -271,6 +283,7 @@ _choose_subdir() {
     local total=0
     local i=0
     local user_selection=""
+    local dialog_bin=""
     local -a subdirs=()
     local -a labels=()
     local -a counts=()
@@ -296,10 +309,11 @@ _choose_subdir() {
         items+=("${labels[$i]} (${counts[$i]})"$'\t'""$'\t'"${subdirs[$i]}")
     done
 
-    if command -v "luciole" &>/dev/null; then
-        user_selection=$(printf "%s\n" "${items[@]}" | luciole dialog --title "$_category_display" --width 500 --height 485 2>/dev/null) || return 1
+    dialog_bin=$(_get_dialog_bin)
+    if [[ -n "$dialog_bin" ]]; then
+        user_selection=$(printf "%s\n" "${items[@]}" | "$dialog_bin" --title "$_category_display" --width 450 --height 490 2>/dev/null) || return 1
     elif command -v "zenity" &>/dev/null; then
-        local -a dialog=(--title "$_category_display" --list --no-markup --width=500 --height=485)
+        local -a dialog=(--title "$_category_display" --list --no-markup --width=450 --height=490)
         dialog+=(--column "$(_i18n 'Directory')" --column "Path" --hide-column=2 --print-column=2)
         dialog+=("$(_i18n 'Actions') ($total)" "__ALL__")
         for i in "${!subdirs[@]}"; do
@@ -307,7 +321,7 @@ _choose_subdir() {
         done
         user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" --ok-label "$(_i18n 'OK')" --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
     elif command -v "yad" &>/dev/null; then
-        local -a dialog=(--title "$_category_display" --list --no-markup --width=500 --height=485)
+        local -a dialog=(--title "$_category_display" --list --no-markup --width=450 --height=490)
         dialog+=(--column "$(_i18n 'Directory')" --column "Path" --hide-column=2 --print-column=2)
         dialog+=("$(_i18n 'Actions') ($total)" "__ALL__")
         for i in "${!subdirs[@]}"; do
@@ -316,7 +330,7 @@ _choose_subdir() {
         user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" --button="$(_i18n 'Cancel'):1" --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
         user_selection=${user_selection%|}
     else
-        printf "A dialog tool is required: luciole, zenity, or yad.\n" >&2
+        printf "A dialog tool is required: luciole-dialog, zenity, or yad.\n" >&2
         return 1
     fi
 
