@@ -8,6 +8,7 @@ extern "C" {
 #include <sys/mman.h>
 #include <unistd.h>
 #include <wayland-client.h>
+#include <wayland-cursor.h>
 #include <xkbcommon/xkbcommon.h>
 
 #include <algorithm>
@@ -188,6 +189,11 @@ namespace {
     wl_surface* surface = nullptr;
     struct xdg_surface* xdg_surf = nullptr;
     struct xdg_toplevel* toplevel = nullptr;
+
+    // Cursor
+    wl_cursor_theme* cursor_theme = nullptr;
+    wl_cursor* cursor_default = nullptr;
+    wl_surface* cursor_surface = nullptr;
 
     Buffer buffers[2];
     int current_buffer = 0;
@@ -392,9 +398,9 @@ namespace {
         cairo_fill(cr);
       }
 
-      // Item Name
+      // Item Name — text always onSurface (readable); primary accent shown via sidebar bar only
       if (isSelected) {
-        setCairoColor(cr, app.palette.primary);
+        setCairoColor(cr, app.palette.onSurface);
         pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_BOLD);
       } else {
         setCairoColor(cr, app.palette.onSurface);
@@ -433,7 +439,17 @@ namespace {
   }
 
   // Pointer callbacks
-  static void pointer_enter(void*, wl_pointer*, uint32_t, wl_surface*, wl_fixed_t, wl_fixed_t) {}
+  static void pointer_enter(void* data, wl_pointer* pointer, uint32_t serial, wl_surface*, wl_fixed_t, wl_fixed_t) {
+    auto* app = static_cast<AppState*>(data);
+    if (app->cursor_default && app->cursor_surface) {
+      wl_cursor_image* img = app->cursor_default->images[0];
+      wl_buffer* cur_buf = wl_cursor_image_get_buffer(img);
+      wl_surface_attach(app->cursor_surface, cur_buf, 0, 0);
+      wl_surface_damage(app->cursor_surface, 0, 0, img->width, img->height);
+      wl_surface_commit(app->cursor_surface);
+      wl_pointer_set_cursor(pointer, serial, app->cursor_surface, img->hotspot_x, img->hotspot_y);
+    }
+  }
   static void pointer_leave(void* data, wl_pointer*, uint32_t, wl_surface*) {
     auto* app = static_cast<AppState*>(data);
     app->hovered_idx = -1;
@@ -738,6 +754,16 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
+  // Load default cursor
+  app.cursor_theme = wl_cursor_theme_load(nullptr, 24, app.shm);
+  if (app.cursor_theme) {
+    app.cursor_default = wl_cursor_theme_get_cursor(app.cursor_theme, "left_ptr");
+    if (!app.cursor_default)
+      app.cursor_default = wl_cursor_theme_get_cursor(app.cursor_theme, "default");
+    if (app.cursor_default)
+      app.cursor_surface = wl_compositor_create_surface(app.compositor);
+  }
+
   app.surface = wl_compositor_create_surface(app.compositor);
   app.xdg_surf = xdg_wm_base_get_xdg_surface(app.wm_base, app.surface);
   xdg_surface_add_listener(app.xdg_surf, &xdg_surf_listener, &app);
@@ -762,7 +788,9 @@ int main(int argc, char* argv[]) {
   // Cleanup
   if (app.toplevel) xdg_toplevel_destroy(app.toplevel);
   if (app.xdg_surf) xdg_surface_destroy(app.xdg_surf);
+  if (app.cursor_surface) wl_surface_destroy(app.cursor_surface);
   if (app.surface) wl_surface_destroy(app.surface);
+  if (app.cursor_theme) wl_cursor_theme_destroy(app.cursor_theme);
   if (app.keyboard) wl_keyboard_destroy(app.keyboard);
   if (app.pointer) wl_pointer_destroy(app.pointer);
   if (app.seat) wl_seat_destroy(app.seat);

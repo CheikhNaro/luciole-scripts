@@ -4,7 +4,7 @@ CXXFLAGS ?= -std=c++20 -O2 -Wall -Wextra
 CFLAGS ?= -O2 -Wall -Wextra
 PKG_CONFIG ?= pkg-config
 
-PKGS = wayland-client cairo pangocairo xkbcommon
+PKGS = wayland-client wayland-cursor cairo pangocairo xkbcommon
 CXXFLAGS_ALL = $(CXXFLAGS) $(shell $(PKG_CONFIG) --cflags $(PKGS))
 LIBS_ALL = $(shell $(PKG_CONFIG) --libs $(PKGS)) -lm
 
