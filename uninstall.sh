@@ -37,8 +37,9 @@ Options:
                 not installed by this project. Asks for confirmation.
   -y, --yes     Do not ask for confirmation.
 
-By default, only the scripts listed in the installation manifest and the
-shared helper files are removed. Other scripts are left untouched.
+By default, only the entries listed in the installation manifest and the
+shared helper files (including the hidden category menu folder) are removed.
+Other scripts are left untouched.
 EOF
 }
 
@@ -101,10 +102,11 @@ fi
 rm -f -- "$SCRIPTS_DIR/.common-functions.sh"
 rm -f -- "$SCRIPTS_DIR/.pkg-map.sh"
 rm -rf -- "$SCRIPTS_DIR/.po"
+rm -rf -- "$SCRIPTS_DIR/.luciole-actions"
 rm -f -- "$MANIFEST"
 
 if rmdir -- "$SCRIPTS_DIR" 2>/dev/null; then
     rmdir -- "$INSTALL_ROOT" 2>/dev/null
 fi
 
-echo "Removed $removed script(s) from $SCRIPTS_DIR"
+echo "Removed $removed installed item(s) from $SCRIPTS_DIR"
