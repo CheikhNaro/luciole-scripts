@@ -231,6 +231,20 @@ names with spaces.
 - Icons declared in upstream comments (`install_icon_kde=...`) are not used by
   Luciole.
 
+## Project layout
+
+```text
+Archive/                  Upstream action folders (source of truth).
+Audio and Video/          One file per action; not scanned by Luciole
+Checksum/                 directly.
+...
+.common-functions.sh      Shared helper, adapted for Luciole.
+.pkg-map.sh               Runtime dependency map used by the actions.
+.po/                      Translation files (also used for installed names).
+install.sh                Flattens a selection into the Luciole folder.
+uninstall.sh              Removes the installed selection.
+```
+
 ## Credits and license
 
 This project is based on
