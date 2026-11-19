@@ -1,0 +1,1003 @@
+#!/usr/bin/env bash
+# shellcheck disable=SC2034
+
+# This file centralizes dependency definitions for the scripts.
+#
+# Sources:
+#   For all: https://pkgs.org
+#   For nix: https://search.nixos.org/packages
+#   For pkgx: https://github.com/pkgxdev/pantry
+#   For guix: https://hpc.guix.info/browse
+#   For termux: https://github.com/termux/termux-packages
+
+# Description:
+#   This array defines the mapping between a dependency key and its
+#   corresponding package names across different package managers.
+#
+# Note: If the package name contains the '~' character, it means that the part
+# before '~' represents the package name used for installation, while the part
+# after '~' represents the package name used for installation verification.
+# This is useful in systems like NixOS, where the installed package name may
+# differ from the one provided during installation.
+declare -A PKG_MAP=(
+    ["7za"]="
+        termux: 7zip
+        apt:    7zip
+        dnf:    7zip
+        pacman: 7zip
+        nix:    p7zip
+        zypper: 7zip
+        guix:   7zip
+        xbps:   7zip
+        pkgx:   github.com/ip7z/7zip
+    "
+
+    ["ar"]="
+        termux:
+        apt:    binutils
+        dnf:    binutils
+        pacman: binutils
+        nix:    binutils
+        zypper: binutils
+        guix:   binutils
+        xbps:   binutils
+        pkgx:   gnu.org/binutils
+    "
+
+    ["axel"]="
+        termux: axel
+        apt:    axel
+        dnf:    axel
+        pacman: axel
+        nix:    axel
+        zypper: axel
+        guix:   axel
+        xbps:   axel
+        pkgx:   github.com/axel-download-accelerator/axel
+    "
+
+    ["baobab"]="
+        termux: baobab
+        apt:    baobab
+        dnf:    baobab
+        pacman: baobab
+        nix:    baobab
+        zypper: baobab
+        guix:   baobab
+        xbps:   baobab
+        pkgx:
+    "
+
+    ["bsdtar"]="
+        termux: libarchive
+        apt:    libarchive-tools
+        dnf:    bsdtar
+        pacman: libarchive
+        nix:    libarchive
+        zypper: bsdtar
+        guix:   libarchive
+        xbps:   bsdtar
+        pkgx:   libarchive.org
+    "
+
+    ["bzip2"]="
+        termux: bzip2
+        apt:    bzip2
+        dnf:    bzip2
+        pacman: bzip2
+        nix:    bzip2
+        zypper: bzip2
+        guix:   bzip2
+        xbps:   bzip2
+        pkgx:   sourceware.org/bzip2
+    "
+
+    ["bzip3"]="
+        termux:
+        apt:    bzip3
+        dnf:    bzip3
+        pacman: bzip3
+        nix:    bzip3
+        zypper: bzip3
+        guix:   bzip3
+        xbps:   bzip3
+        pkgx:   github.com/iczelia/bzip3
+    "
+
+    ["cabextract"]="
+        termux: cabextract
+        apt:    cabextract
+        dnf:    cabextract
+        pacman: cabextract
+        nix:    cabextract
+        zypper: cabextract
+        guix:   cabextract
+        xbps:   cabextract
+        pkgx:   github.com/kyz/libmspack
+    "
+
+    ["cjxl"]="
+        termux: libjxl-progs
+        apt:    libjxl-tools
+        dnf:    libjxl-utils
+        pacman: libjxl
+        nix:    libjxl
+        zypper: libjxl-tools
+        guix:   libjxl
+        xbps:   libjxl-tools
+        pkgx:   jpeg.org/jpegxl
+    "
+
+    ["clamscan"]="
+        termux: clamav
+        apt:    clamav
+        dnf:    clamav
+        pacman: clamav
+        nix:    clamav
+        zypper: clamav
+        guix:   clamav
+        xbps:   clamav
+        pkgx:
+    "
+
+    ["cpio"]="
+        termux: cpio
+        apt:    cpio
+        dnf:    cpio
+        pacman: cpio
+        nix:    cpio
+        zypper: cpio
+        guix:   cpio
+        xbps:   cpio
+        pkgx:   gnu.org/cpio
+    "
+
+    ["curl"]="
+        termux: curl
+        apt:    curl
+        dnf:    curl
+        pacman: curl
+        nix:    curl
+        zypper: curl
+        guix:   curl
+        xbps:   curl
+        pkgx:   curl.se
+    "
+
+    ["dar"]="
+        termux: dar
+        apt:    dar
+        dnf:    dar
+        pacman: dar
+        nix:    dar
+        zypper: dar
+        guix:
+        xbps:   dar
+        pkgx:   github.com/Edrusb/DAR
+    "
+
+    ["diffpdf"]="
+        termux:
+        apt:    diffpdf
+        dnf:    diffpdf
+        pacman: diffpdf
+        nix:    diffpdf
+        zypper:
+        guix:   diffpdf
+        xbps:
+        pkgx:
+    "
+
+    ["dig"]="
+        termux: dnsutils
+        apt:    bind9-dnsutils
+        dnf:    bind-utils
+        pacman: bind
+        nix:    dnsutils
+        zypper: bind-utils
+        guix:   bind
+        xbps:   bind
+        pkgx:   isc.org/bind9
+    "
+
+    ["exiftool"]="
+        termux: exiftool
+        apt:    libimage-exiftool-perl
+        dnf:    perl-Image-ExifTool
+        pacman: perl-image-exiftool
+        nix:    exiftool
+        zypper: exiftool
+        guix:   perl-image-exiftool
+        xbps:   exiftool
+        pkgx:   exiftool.org
+    "
+
+    ["ffmpeg"]="
+        termux: ffmpeg
+        apt:    ffmpeg
+        dnf:    ffmpeg-free
+        pacman: ffmpeg
+        nix:    ffmpeg
+        zypper: ffmpeg
+        guix:   ffmpeg
+        xbps:   ffmpeg
+        pkgx:   ffmpeg.org
+    "
+
+    ["filelight"]="
+        termux: filelight
+        apt:    filelight
+        dnf:    filelight
+        pacman: filelight
+        nix:    kdePackages.filelight
+        zypper: filelight
+        guix:   filelight
+        xbps:   filelight
+        pkgx:
+    "
+
+    ["ghex"]="
+        termux: ghex
+        apt:    ghex
+        dnf:    ghex
+        pacman: ghex
+        nix:    ghex
+        zypper: ghex
+        guix:   ghex
+        xbps:   ghex
+        pkgx:
+    "
+
+    ["git"]="
+        termux: git
+        apt:    git
+        dnf:    git
+        pacman: git
+        nix:    git
+        zypper: git
+        guix:   git
+        xbps:   git
+        pkgx:
+    "
+
+    ["gpg"]="
+        termux: gnupg
+        apt:    gnupg
+        dnf:    gnupg2
+        pacman: gnupg
+        nix:    gnupg
+        zypper: gpg2
+        guix:   gnupg
+        xbps:   gnupg
+        pkgx:
+    "
+
+    ["gs"]="
+        termux: ghostscript
+        apt:    ghostscript
+        dnf:    ghostscript
+        pacman: ghostscript
+        nix:    ghostscript
+        zypper: ghostscript
+        guix:   ghostscript
+        xbps:   ghostscript
+        pkgx:   ghostscript.com
+    "
+
+    ["gunzip"]="
+        termux: gzip
+        apt:    gzip
+        dnf:    gzip
+        pacman: gzip
+        nix:    gzip
+        zypper: gzip
+        guix:   gzip
+        xbps:   gzip
+        pkgx:   gnu.org/gzip
+    "
+
+    ["gzip"]="
+        termux: gzip
+        apt:    gzip
+        dnf:    gzip
+        pacman: gzip
+        nix:    gzip
+        zypper: gzip
+        guix:   gzip
+        xbps:   gzip
+        pkgx:   gnu.org/gzip
+    "
+
+    ["id3v2"]="
+        termux: id3v2
+        apt:    id3v2
+        dnf:    id3v2
+        pacman: id3v2
+        nix:    id3v2
+        zypper: id3v2
+        guix:
+        xbps:   id3v2
+        pkgx:   github.com/myers/id3v2
+    "
+
+    ["inkscape"]="
+        termux:
+        apt:    inkscape
+        dnf:    inkscape
+        pacman: inkscape
+        nix:    inkscape
+        zypper: inkscape
+        guix:   inkscape
+        xbps:   inkscape
+        pkgx:
+    "
+
+    ["jq"]="
+        termux: jq
+        apt:    jq
+        dnf:    jq
+        pacman: jq
+        nix:    jq
+        zypper: jq
+        guix:   jq
+        xbps:   jq
+        pkgx:   stedolan.github.io/jq
+    "
+
+    ["kdiff3"]="
+        termux:
+        apt:    kdiff3
+        dnf:    kdiff3
+        pacman: kdiff3
+        nix:    kdiff3
+        zypper: kdiff3
+        guix:
+        xbps:   kdiff3
+        pkgx:
+    "
+
+    ["lenspect"]="
+        termux:
+        apt:
+        dnf:
+        pacman:
+        nix:
+        zypper:
+        guix:
+        xbps:
+        pkgx:
+        flatpak: io.github.vmkspv.lenspect
+    "
+
+    ["lha"]="
+        termux: lhasa
+        apt:    lhasa
+        dnf:    lhasa
+        pacman: lhasa
+        nix:    lhasa
+        zypper: lhasa
+        guix:   lhasa
+        xbps:   lhasa
+        pkgx:   fragglet.github.io/lhasa
+    "
+
+    ["lrzip"]="
+        termux: lrzip
+        apt:    lrzip
+        dnf:
+        pacman: lrzip
+        nix:    lrzip
+        zypper: lrzip
+        guix:   lrzip
+        xbps:   lrzip
+        pkgx:   github.com/ckolivas/lrzip
+    "
+
+    ["lz4"]="
+        termux: lz4
+        apt:    lz4
+        dnf:    lz4
+        pacman: lz4
+        nix:    lz4
+        zypper: lz4
+        guix:   lz4
+        xbps:   lz4
+        pkgx:   lz4.org
+    "
+
+    ["lzip"]="
+        termux: lzip
+        apt:    lzip
+        dnf:    lzip
+        pacman: lzip
+        nix:    lzip
+        zypper: lzip
+        guix:   lzip
+        xbps:   lzip
+        pkgx:   nongnu.org/lzip
+    "
+
+    ["lzma"]="
+        termux: xz-utils
+        apt:    xz-utils
+        dnf:    lzma
+        pacman: xz
+        nix:    xz
+        zypper: lzma
+        guix:   xz
+        xbps:   xz
+        pkgx:   tukaani.org/xz
+    "
+
+    ["lzop"]="
+        termux: lzop
+        apt:    lzop
+        dnf:    lzop
+        pacman: lzop
+        nix:    lzop
+        zypper: lzop
+        guix:   lzop
+        xbps:   lzop
+        pkgx:   lzop.org
+    "
+
+    ["magick"]="
+        termux: imagemagick
+        apt:    imagemagick
+        dnf:    ImageMagick
+        pacman: imagemagick
+        nix:    imagemagick
+        zypper: ImageMagick
+        guix:   imagemagick
+        xbps:   ImageMagick
+        pkgx:   imagemagick.org
+    "
+
+    ["mediainfo"]="
+        termux: mediainfo
+        apt:    mediainfo
+        dnf:    mediainfo
+        pacman: mediainfo
+        nix:    mediainfo
+        zypper: mediainfo
+        guix:   mediainfo
+        xbps:   mediainfo
+        pkgx:   mediaarea.net/mediainfo
+    "
+
+    ["meld"]="
+        termux: meld
+        apt:    meld
+        dnf:    meld
+        pacman: meld
+        nix:    meld
+        zypper: meld
+        guix:   meld
+        xbps:   meld
+        pkgx:
+    "
+
+    ["mp3gain"]="
+        termux: mp3gain
+        apt:    mp3gain
+        dnf:    mp3gain
+        pacman: mp3gain
+        nix:    mp3gain
+        zypper: mp3gain
+        guix:
+        xbps:
+        pkgx:   mp3gain.sourceforge.net
+    "
+
+    ["nmap"]="
+        termux: nmap
+        apt:    nmap
+        dnf:    nmap
+        pacman: nmap
+        nix:    nmap
+        zypper: nmap
+        guix:   nmap
+        xbps:   nmap
+        pkgx:   nmap.org
+    "
+
+    ["okteta"]="
+        termux:
+        apt:    okteta
+        dnf:    okteta
+        pacman: okteta
+        nix:    okteta
+        zypper: okteta
+        guix:   okteta
+        xbps:   okteta
+        pkgx:
+    "
+
+    ["openssl"]="
+        termux: openssl
+        apt:    openssl
+        dnf:    openssl
+        pacman: openssl
+        nix:    openssl
+        zypper: openssl
+        guix:   openssl
+        xbps:   openssl
+        pkgx:   openssl.org
+    "
+
+    ["optipng"]="
+        termux: optipng
+        apt:    optipng
+        dnf:    optipng
+        pacman: optipng
+        nix:    optipng
+        zypper: optipng
+        guix:   optipng
+        xbps:   optipng
+        pkgx:   sf.net/optipng
+    "
+
+    ["pandoc"]="
+        termux: pandoc
+        apt:    pandoc
+        dnf:    pandoc-cli
+        pacman: pandoc
+        nix:    pandoc
+        zypper: pandoc
+        guix:   pandoc
+        xbps:   pandoc
+        pkgx:   pandoc.org
+    "
+
+    ["pdfannots"]="
+        termux:
+        apt:
+        dnf:
+        pacman:
+        nix:
+        zypper:
+        guix:
+        xbps:
+        pkgx:   github.com/0xabu/pdfannots
+    "
+
+    ["pdfcpu"]="
+        termux: pdfcpu
+        apt:
+        dnf:
+        pacman: pdfcpu
+        nix:    pdfcpu
+        zypper:
+        guix:
+        xbps:   pdfcpu
+        pkgx:   github.com/pdfcpu/pdfcpu
+        precompiled: pdfcpu
+    "
+
+    ["pdfinfo"]="
+        termux: poppler
+        apt:    poppler-utils
+        dnf:    poppler-utils
+        pacman: poppler
+        nix:    poppler-utils
+        zypper: poppler-tools
+        guix:   poppler
+        xbps:   poppler
+        pkgx:   poppler.freedesktop.org
+    "
+
+    ["perl"]="
+        termux: perl
+        apt:    perl-base
+        dnf:    perl-base
+        pacman: perl-base
+        nix:    perl
+        zypper: perl-base
+        guix:   perl
+        xbps:   perl
+        pkgx:   perl.org
+    "
+
+    ["ping"]="
+        termux: inetutils
+        apt:    iputils-ping
+        dnf:    iputils
+        pacman: iputils
+        nix:    iputils
+        zypper: iputils
+        guix:   iputils
+        xbps:   iputils
+        pkgx:   github.com/iputils/iputils
+    "
+
+    ["qpdf"]="
+        termux: qpdf
+        apt:    qpdf
+        dnf:    qpdf
+        pacman: qpdf
+        nix:    qpdf
+        zypper: qpdf
+        guix:   qpdf
+        xbps:   qpdf
+        pkgx:   qpdf.sourceforge.io
+    "
+
+    ["rdfind"]="
+        termux: rdfind
+        apt:    rdfind
+        dnf:    rdfind
+        pacman: rdfind
+        nix:    rdfind
+        zypper: rdfind
+        guix:   rdfind
+        xbps:   rdfind
+        pkgx:   rdfind.pauldreik.se
+    "
+
+    ["rdsquashfs"]="
+        termux: squashfs-tools-ng
+        apt:    squashfs-tools-ng
+        dnf:    squashfs-tools-ng
+        pacman:
+        nix:    squashfs-tools-ng
+        zypper:
+        guix:
+        xbps:   squashfs-tools-ng
+        pkgx:   github.com/AgentD/squashfs-tools-ng
+    "
+
+    ["rhash"]="
+        termux: rhash
+        apt:    rhash
+        dnf:    rhash
+        pacman: rhash
+        nix:    rhash
+        zypper: rhash
+        guix:   rhash
+        xbps:   rhash
+        pkgx:   rhash.sourceforge.net
+    "
+
+    ["rsync"]="
+        termux: rsync
+        apt:    rsync
+        dnf:    rsync
+        pacman: rsync
+        nix:    rsync
+        zypper: rsync
+        guix:   rsync
+        xbps:   rsync
+        pkgx:   rsync.samba.org
+    "
+
+    ["tar"]="
+        termux: tar
+        apt:    tar
+        dnf:    tar
+        pacman: tar
+        nix:    gnutar
+        zypper: tar
+        guix:   tar
+        xbps:   tar
+        pkgx:   gnu.org/tar
+    "
+
+    ["unrar"]="
+        termux: unrar
+        apt:
+        dnf:
+        pacman:
+        nix:
+        zypper:
+        guix:
+        xbps:
+        pkgx:   rarlab.com
+    "
+
+    ["unsquashfs"]="
+        termux:
+        apt:    squashfs-tools
+        dnf:    squashfs-tools
+        pacman: squashfs-tools
+        nix:    squashfsTools~squashfs
+        zypper: squashfs
+        guix:   squashfs-tools
+        xbps:   squashfs-tools
+        pkgx:   github.com/plougher/squashfs-tools
+    "
+
+    ["wl-paste"]="
+        termux:
+        apt:    wl-clipboard
+        dnf:    wl-clipboard
+        pacman: wl-clipboard
+        nix:    wl-clipboard
+        zypper: wl-clipboard
+        guix:   wl-clipboard
+        xbps:   wl-clipboard
+        pkgx:
+    "
+
+    ["xclip"]="
+        termux: xclip
+        apt:    xclip
+        dnf:    xclip
+        pacman: xclip
+        nix:    xclip
+        zypper: xclip
+        guix:   xclip
+        xbps:   xclip
+        pkgx:
+    "
+
+    ["xorriso"]="
+        termux: xorriso
+        apt:    xorriso
+        dnf:    xorriso
+        pacman: xorriso
+        nix:    xorriso~libisoburn
+        zypper: xorriso
+        guix:   xorriso
+        xbps:   xorriso
+        pkgx:   gnu.org/xorriso
+    "
+
+    ["xxd"]="
+        termux: xxd
+        apt:    xxd
+        dnf:    xxd
+        pacman: xxd
+        nix:    xxd
+        zypper: xxd
+        guix:   xxd
+        xbps:   xxd
+        pkgx:   vim.org/xxd
+    "
+
+    ["xz"]="
+        termux: xz-utils
+        apt:    xz-utils
+        dnf:    xz
+        pacman: xz
+        nix:    xz
+        zypper: xz
+        guix:   xz
+        xbps:   xz
+        pkgx:   tukaani.org/xz
+    "
+
+    ["zpaq"]="
+        termux: zpaq
+        apt:    zpaq
+        dnf:    zpaq
+        pacman:
+        nix:    zpaq
+        zypper: zpaq
+        guix:   zpaq
+        xbps:   zpaq
+        pkgx:   github.com/zpaq/zpaq
+    "
+
+    ["zstd"]="
+        termux: zstd
+        apt:    zstd
+        dnf:    zstd
+        pacman: zstd
+        nix:    zstd
+        zypper: zstd
+        guix:   zstd
+        xbps:   zstd
+        pkgx:   facebook.com/zstd
+    "
+
+
+    ["localc"]="
+        termux:
+        apt:    libreoffice-calc
+        dnf:    libreoffice-calc
+        pacman: libreoffice
+        nix:    libreoffice
+        zypper: libreoffice-calc
+        guix:   libreoffice
+        xbps:   libreoffice-calc
+        pkgx:
+    "
+
+    ["loimpress"]="
+        termux:
+        apt:    libreoffice-impress
+        dnf:    libreoffice-impress
+        pacman: libreoffice
+        nix:    libreoffice
+        zypper: libreoffice-impress
+        guix:   libreoffice
+        xbps:   libreoffice-impress
+        pkgx:
+    "
+
+    ["lowriter"]="
+        termux:
+        apt:    libreoffice-writer
+        dnf:    libreoffice-writer
+        pacman: libreoffice
+        nix:    libreoffice
+        zypper: libreoffice-writer
+        guix:   libreoffice
+        xbps:   libreoffice-writer
+        pkgx:
+    "
+
+    ["ocrmypdf"]="
+        termux:
+        apt:    ocrmypdf
+        dnf:    ocrmypdf
+        pacman:
+        nix:    ocrmypdf
+        zypper:
+        guix:
+        xbps:   python3-ocrmypdf
+        pkgx:   github.com/ocrmypdf/OCRmyPDF ghostscript.com
+    "
+
+    ["rayomd"]="
+        termux:
+        apt:
+        dnf:
+        pacman:
+        nix:
+        zypper:
+        guix:
+        xbps:
+        pkgx:   github.com/Butterski/rayomd
+        precompiled: rayomd
+    "
+
+    ["sox"]="
+        termux: sox
+        apt:    sox libsox-fmt-mp3
+        dnf:    sox
+        pacman: sox
+        nix:    sox
+        zypper: sox
+        guix:   sox
+        xbps:   sox
+        pkgx:   sox.sourceforge.net codeberg.org/tenacityteam/libmad
+    "
+
+    ["tesseract-ocr-afr"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-afr
+        dnf:    tesseract tesseract-langpack-afr
+        pacman: tesseract tesseract-data-afr
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-afr
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-afr
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-deu"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-deu
+        dnf:    tesseract tesseract-langpack-deu
+        pacman: tesseract tesseract-data-deu
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-deu
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-deu
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-eng"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-eng
+        dnf:    tesseract tesseract-langpack-eng
+        pacman: tesseract tesseract-data-eng
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-eng
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-eng
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-fra"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-fra
+        dnf:    tesseract tesseract-langpack-fra
+        pacman: tesseract tesseract-data-fra
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-fra
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-fra
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-ita"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-ita
+        dnf:    tesseract tesseract-langpack-ita
+        pacman: tesseract tesseract-data-ita
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-ita
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-ita
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-por"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-por
+        dnf:    tesseract tesseract-langpack-por
+        pacman: tesseract tesseract-data-por
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-por
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-por
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-rus"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-rus
+        dnf:    tesseract tesseract-langpack-rus
+        pacman: tesseract tesseract-data-rus
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-rus
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-rus
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+    ["tesseract-ocr-spa"]="
+        termux: tesseract
+        apt:    tesseract-ocr tesseract-ocr-spa
+        dnf:    tesseract tesseract-langpack-spa
+        pacman: tesseract tesseract-data-spa
+        nix:    tesseract
+        zypper: tesseract tesseract-ocr-traineddata-spa
+        guix:   tesseract-ocr
+        xbps:   tesseract-ocr tesseract-ocr-spa
+        pkgx:   tesseract-ocr.github.io tesseract-ocr.github.io/tessdata
+    "
+
+
+    ["tmux"]="
+        termux: tmux
+        apt:    tmux
+        dnf:    tmux
+        pacman: tmux
+        nix:    tmux
+        zypper: tmux
+        guix:   tmux
+        xbps:   tmux
+        pkgx:   github.com/tmux/tmux
+    "
+)
+
+# Description:
+#   This array defines commands that need to be executed after a package is
+#   installed. These commands are usually required for proper initialization,
+#   configuration, or updates that the package manager alone does not handle.
+declare -A POST_INSTALL=(
+    ["clamscan"]='*:rm -f /var/log/clamav/freshclam.log; sed -i "/^NotifyClamd/d" /etc/clamav/freshclam.conf 2>/dev/null; freshclam --quiet'
+
+    ["magick"]='*:find /etc -type f -path "/etc/ImageMagick-*/policy.xml" 2>/dev/null -exec sed -i -e "s/rights=\"none\" pattern=\"PDF\"/rights=\"read|write\" pattern=\"PDF\"/g" -e "s/name=\"disk\" value=\".GiB\"/name=\"disk\" value=\"8GiB\"/g" {} +'
+)
+
+# Description:
+#   This array defines download URLs for precompiled binaries. Each entry maps
+#   a dependency key to architecture-specific URLs, selected from the machine
+#   architecture. A value may be a full URL, or a GitHub in the format:
+#   "github;username/repository;regex".
+#   The regular expression selects the tarball URL from the latest release.
+declare -A PRECOMPILED_URL=(
+    ["pdfcpu"]="
+        x86_64:  github;pdfcpu/pdfcpu;https.*pdfcpu.*inux.*x86.64.tar.\w*
+        aarch64: github;pdfcpu/pdfcpu;https.*pdfcpu.*inux.*arm64.tar.\w*
+        armv71:  github;pdfcpu/pdfcpu;https.*pdfcpu.*inux.*armv7.tar.\w*
+    "
+
+    ["rayomd"]="
+        x86_64:  github;Butterski/rayomd;https.*rayomd.*inux.*x64.tar.\w*
+    "
+)

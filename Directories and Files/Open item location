@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# install_icon_kde=find-location
+# install_keyboard_shortcut=<Control><Shift>O
+
+# Source the file '.common-functions.sh'.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+ROOT_DIR=$(grep --only-matching "^.*scripts[^/]*" <<<"$SCRIPT_DIR")
+source "$ROOT_DIR/.common-functions.sh"
+
+_main() {
+    local input_files=""
+
+    # Execute initial checks.
+    input_files=$(_get_files "par_type=all; par_max_items=20")
+
+    # Run the main process.
+    _open_items_locations "$input_files" "true"
+}
+
+_main "$@"

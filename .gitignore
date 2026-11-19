@@ -1,0 +1,15 @@
+# Backup files.
+*.bak
+
+# Log files.
+*.log
+
+# Output directories created by the actions.
+Output*/
+
+# Compiled translations.
+*.mo
+
+# Local test and output directories.
+test/
+tmp/

@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# install_mime_type=all/allfiles;
+# install_icon_kde=edit-copy-path
+
+# Source the file '.common-functions.sh'.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+ROOT_DIR=$(grep --only-matching "^.*scripts[^/]*" <<<"$SCRIPT_DIR")
+source "$ROOT_DIR/.common-functions.sh"
+
+_main() {
+    local input_files=""
+
+    # Execute initial checks.
+    _check_dependencies_clipboard ""
+    _display_wait_box ""
+    input_files=$(_get_files "par_type=file")
+
+    # Run the main process.
+    if (($(_get_items_count "$input_files") == 1)); then
+        # If a single file is selected (text, image, or any supported type),
+        # copy the file itself directly to the clipboard.
+        _set_clipboard_file "$input_files"
+    else
+        # If multiple text files are selected, concatenate their contents
+        # into a temp file and copy that.
+        local temp_file=""
+        temp_file=$(_make_temp_file)
+        # shellcheck disable=SC2086
+        cat -- $input_files >"$temp_file" 2>/dev/null
+        _set_clipboard_file "$temp_file"
+    fi
+
+    _display_result_box ""
+}
+
+_main "$@"

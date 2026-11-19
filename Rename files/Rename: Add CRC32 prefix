@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# install_mime_type=all/allfiles;
+# install_icon_kde=edit-rename
+
+# Source the file '.common-functions.sh'.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+ROOT_DIR=$(grep --only-matching "^.*scripts[^/]*" <<<"$SCRIPT_DIR")
+source "$ROOT_DIR/.common-functions.sh"
+
+_main() {
+    local input_files=""
+    local output_dir=""
+
+    # Execute initial checks.
+    # NOTE: Older versions of 'cksum' do not support the -a option.
+    if ! cksum -a crc32b /dev/null &>/dev/null; then
+        _check_dependencies "rhash"
+    fi
+    _display_wait_box ""
+    input_files=$(_get_files "par_type=file")
+
+    # Execute the function '_main_task' for each file in parallel.
+    _run_task_parallel "$input_files" "$output_dir"
+    _display_result_box ""
+}
+
+_main_task() {
+    local input_file=$1
+    local output_dir=$2
+    local output_file=""
+    local dir=""
+    local filename=""
+    local std_output=""
+    local exit_code=0
+
+    dir=$(dirname -- "$input_file")
+    filename=$(basename -- "$input_file")
+
+    # Run the main process.
+    if _run_in_sandbox "$output_dir" "false" cksum -a crc32b /dev/null &>/dev/null; then
+        std_output=$(_run_in_sandbox "$output_dir" "false" cksum -a crc32b -- "$input_file" 2>&1)
+        exit_code=$?
+        if ((exit_code == 0)); then
+            std_output=${std_output%%[$'\t ']*}
+            printf -v std_output '%08x' "$std_output"
+        fi
+    else
+        std_output=$(_run_in_sandbox "$output_dir" "false" rhash --printf="%{crc32}" -- "$input_file" 2>&1)
+        exit_code=$?
+    fi
+    _check_output "$exit_code" "$std_output" "$input_file" "" || return 1
+
+    # If an 8-hex CRC32 prefix already exists:
+    # keep it when correct, otherwise replace.
+    if [[ "$filename" =~ ^\(([0-9a-fA-F]{8})\)[[:space:]]+(.*)$ ]]; then
+        local old_crc="${BASH_REMATCH[1]}"
+        local base_name="${BASH_REMATCH[2]}"
+        if [[ "${old_crc,,}" == "${std_output,,}" ]]; then
+            return 0
+        fi
+        filename="$base_name"
+    fi
+    output_file="($std_output) $filename"
+
+    _move_file "skip" "$input_file" "$dir/$output_file" || return 1
+}
+
+_main "$@"

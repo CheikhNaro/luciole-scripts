@@ -1,0 +1,631 @@
+#!/usr/bin/env bash
+# install_mime_type=all/allfiles;
+# install_icon_kde=archive-extract
+# install_keyboard_shortcut=<Control>E
+
+# Source the file '.common-functions.sh'.
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
+ROOT_DIR=$(grep --only-matching "^.*scripts[^/]*" <<<"$SCRIPT_DIR")
+source "$ROOT_DIR/.common-functions.sh"
+
+_main() {
+    local input_files=""
+    local output_dir=""
+
+    # Execute initial checks.
+    input_files=$(_get_files "par_type=file")
+    output_dir=$(_get_output_dir "par_use_same_dir=true")
+
+    # Default password for testing encrypted archives.
+    TASK_PASSWORD="null"
+    export TASK_PASSWORD
+
+    # Execute the function '_get_dependencies' for each file in parallel.
+    export -f \
+        _all_commands_exists \
+        _concat_file \
+        _get_command \
+        _get_dependencies \
+        _run_command \
+        _strip_filename_multipart
+    _run_function_parallel "_get_dependencies '{}'" "$input_files" "$FIELD_SEPARATOR"
+
+    local dependencies=""
+    dependencies=$(_storage_text_read_all)
+
+    _check_dependencies "$dependencies"
+    _display_wait_box ""
+
+    # Execute the function '_main_task' for each file in parallel.
+    _run_task_parallel "$input_files" "$output_dir"
+    _display_result_box ""
+}
+
+_main_task() {
+    local input_file=$1
+    local output_dir=$2
+
+    # Run the main process.
+    local command=""
+    command=$(_get_command "$input_file" "available")
+    _run_command "$input_file" "$command" "$output_dir"
+}
+
+# Function: _strip_filename_multipart
+#
+# Description:
+#   This function removes the split archive suffixes ('.000', '.001', and
+#   '.part') from a filename.
+#
+# Parameters:
+#   $1 (filename): The filename to be processed.
+#
+# Returns:
+#   The filename without the split archive suffixes (printed to stdout).
+_strip_filename_multipart() {
+    local filename=$1
+
+    # Remove '.000', '.001'.
+    if [[ "$filename" =~ \.[0-9]+$ ]]; then
+        filename=${filename%.*}
+        # Remove '.part'.
+        if [[ "${filename,,}" =~ \.part$ ]]; then
+            filename=${filename%.*}
+        fi
+    fi
+    printf "%s" "$filename"
+}
+
+# Function: _concat_file
+#
+# Description:
+#   This function joins the parts of a split archive (for example, 'file.001'
+#   and 'file.002') into a single file in the output directory.
+#
+# Parameters:
+#   $1 (input_file): Any part of the split archive.
+#   $2 (output_dir): The directory where the joined file will be created.
+#
+# Returns:
+#   The path of the joined file (printed to stdout).
+_concat_file() {
+    local input_file=$1
+    local output_dir=$2
+    local base_file=${input_file%.*}
+    local output_file=""
+    local output_file_path=""
+    local parts=()
+    local part=""
+
+    for part in "$base_file".[0-9]*; do
+        if [[ -f "$part" ]]; then
+            parts+=("$part")
+        fi
+    done
+
+    output_file=$(basename -- "$base_file")
+    output_file=$(_strip_filename_multipart "$output_file")
+
+    output_file_path="$output_dir/$output_file"
+
+    cat -- "${parts[@]}" >"$output_file_path"
+    printf "%s" "$output_file_path"
+}
+
+# Function: _get_dependencies
+#
+# Description:
+#   This function checks if the extraction command for a file is available. If
+#   it is not, the default command is written to the text storage so it can be
+#   reported to the user.
+#
+# Parameters:
+#   $1 (input_file): The archive file to be checked.
+_get_dependencies() {
+    local input_file=$1
+    local dependencies=""
+
+    local command=""
+    command=$(_get_command "$input_file" "available")
+
+    # If there is an available command, skip the dependency.
+    if [[ -n "$command" ]]; then
+        return
+    fi
+
+    command=$(_get_command "$input_file" "default")
+
+    _storage_text_write_ln "$command"
+}
+
+# Function: _get_command
+#
+# Description:
+#   This function determines the command used to extract an archive, based on
+#   its filename extension or, if the extension is unknown, its MIME type.
+#
+# Parameters:
+#   $1 (input_file): The archive file.
+#   $2 (command_status): 'default' to get the first preferred command, or
+#      'available' to get the first preferred command installed on the system.
+#
+# Returns:
+#   The name of the command (printed to stdout).
+_get_command() {
+    local input_file=$1
+    local command_status=$2
+    local command=""
+    local pref_cmds=()
+
+    # Define the preferred commands for each type of archive.
+    local cmds_7za=("7za" "bsdtar")
+    local cmds_ar=("ar" "bsdtar")
+    local cmds_arj=("7za")
+    local cmds_bz=("bzip2" "7za")
+    local cmds_bz3=("bzip3")
+    local cmds_cab=("cabextract" "bsdtar")
+    local cmds_cpio=("cpio" "bsdtar")
+    local cmds_dar=("dar")
+    local cmds_deb=("ar")
+    local cmds_gpg=("gpg")
+    local cmds_gz=("gzip" "7za")
+    local cmds_iso=("xorriso" "bsdtar")
+    local cmds_lrz=("lrzip")
+    local cmds_lz=("lzip")
+    local cmds_lz4=("lz4")
+    local cmds_lzh=("lha")
+    local cmds_lzma=("xz")
+    local cmds_lzo=("lzop")
+    local cmds_msi=("7za")
+    local cmds_rar=("unrar" "bsdtar")
+    local cmds_rpm=("bsdtar")
+    local cmds_sqsh=("unsquashfs" "rdsquashfs")
+    local cmds_tar_bz=("tar,bzip2" "7za")
+    local cmds_tar_gz=("tar,gzip" "7za")
+    local cmds_tar_lrz=("tar,lrzip")
+    local cmds_tar_lz=("tar,lzip")
+    local cmds_tar_lz4=("tar,lz4")
+    local cmds_tar_lzma=("tar,lzma" "7za")
+    local cmds_tar_lzo=("tar,lzop")
+    local cmds_tar_xz=("tar,xz" "7za")
+    local cmds_tar_z=("tar,gzip" "7za")
+    local cmds_tar_zst=("tar,zstd")
+    local cmds_tar=("tar" "bsdtar" "7za")
+    local cmds_xar=("bsdtar")
+    local cmds_xz=("xz" "7za")
+    local cmds_z=("gzip")
+    local cmds_zip=("7za" "bsdtar")
+    local cmds_zpaq=("zpaq")
+    local cmds_zstd=("zstd")
+    local cmds_unknown_file=("bsdtar,7za")
+
+    # For split archives ('.000' or '.001'), use the name of the joined file.
+    local type_name=""
+    type_name=$(_strip_filename_multipart "$input_file")
+
+    # Determine the preferred commands based on the filename extension.
+    case "${type_name,,}" in
+    *.tar.bz | *.tbz) pref_cmds=("${cmds_tar_bz[@]}") ;;
+    *.tar.bz2 | *.tbz2 | *.tb2) pref_cmds=("${cmds_tar_bz[@]}") ;;
+    *.tar.gz | *.tgz) pref_cmds=("${cmds_tar_gz[@]}") ;;
+    *.tar.lrz | *.tlrz) pref_cmds=("${cmds_tar_lrz[@]}") ;;
+    *.tar.lz) pref_cmds=("${cmds_tar_lz[@]}") ;;
+    *.tar.lz4) pref_cmds=("${cmds_tar_lz4[@]}") ;;
+    *.tar.lzma | *.tlz) pref_cmds=("${cmds_tar_lzma[@]}") ;;
+    *.tar.lzo | *.tzo) pref_cmds=("${cmds_tar_lzo[@]}") ;;
+    *.tar.xz | *.txz) pref_cmds=("${cmds_tar_xz[@]}") ;;
+    *.tar.z | *.taz) pref_cmds=("${cmds_tar_z[@]}") ;;
+    *.tar.zst | *.tzst) pref_cmds=("${cmds_tar_zst[@]}") ;;
+    *.7z) pref_cmds=("${cmds_7za[@]}") ;;
+    *.ar) pref_cmds=("${cmds_ar[@]}") ;;
+    *.arj) pref_cmds=("${cmds_arj[@]}") ;;
+    *.bz | *.bz2) pref_cmds=("${cmds_bz[@]}") ;;
+    *.bz3) pref_cmds=("${cmds_bz3[@]}") ;;
+    *.cab) pref_cmds=("${cmds_cab[@]}") ;;
+    *.cpio) pref_cmds=("${cmds_cpio[@]}") ;;
+    *.dar) pref_cmds=("${cmds_dar[@]}") ;;
+    *.deb | *.udeb) pref_cmds=("${cmds_deb[@]}") ;;
+    *.gpg | *.asc | *.pgp) pref_cmds=("${cmds_gpg[@]}") ;;
+    *.gz) pref_cmds=("${cmds_gz[@]}") ;;
+    *.iso) pref_cmds=("${cmds_iso[@]}") ;;
+    *.lrz) pref_cmds=("${cmds_lrz[@]}") ;;
+    *.lz) pref_cmds=("${cmds_lz[@]}") ;;
+    *.lz4) pref_cmds=("${cmds_lz4[@]}") ;;
+    *.lzh | *.lzs | *.lha) pref_cmds=("${cmds_lzh[@]}") ;;
+    *.lzma) pref_cmds=("${cmds_lzma[@]}") ;;
+    *.lzo) pref_cmds=("${cmds_lzo[@]}") ;;
+    *.msi) pref_cmds=("${cmds_msi[@]}") ;;
+    *.rar) pref_cmds=("${cmds_rar[@]}") ;;
+    *.rpm) pref_cmds=("${cmds_rpm[@]}") ;;
+    *.sqsh | *.squashfs | *.sfs) pref_cmds=("${cmds_sqsh[@]}") ;;
+    *.tar | *.gtar | *.gem) pref_cmds=("${cmds_tar[@]}") ;;
+    *.xar) pref_cmds=("${cmds_xar[@]}") ;;
+    *.xz) pref_cmds=("${cmds_xz[@]}") ;;
+    *.z) pref_cmds=("${cmds_z[@]}") ;;
+    *.zip | *.apk | *.jar | *.ear) pref_cmds=("${cmds_zip[@]}") ;;
+    *.zpaq) pref_cmds=("${cmds_zpaq[@]}") ;;
+    *.zst) pref_cmds=("${cmds_zstd[@]}") ;;
+    *)
+        # For unknown extension, determine the preferred commands based on the
+        # MIME type.
+        local file_mime=""
+        file_mime=$(_get_file_mime "$input_file")
+
+        # NOTE: See the file: /usr/share/mime/packages/freedesktop.org.xml
+        case "${file_mime,,}" in
+        "application/pgp-encrypted") pref_cmds=("${cmds_gpg[@]}") ;;
+        "application/vnd.debian.binary-package") pref_cmds=("${cmds_deb[@]}") ;;
+        "application/vnd.ms-cab-compressed") pref_cmds=("${cmds_cab[@]}") ;;
+        "application/vnd.squashfs") pref_cmds=("${cmds_sqsh[@]}") ;;
+        "application/x-7z-compressed") pref_cmds=("${cmds_7za[@]}") ;;
+        "application/x-archive") pref_cmds=("${cmds_ar[@]}") ;;
+        "application/x-arj") pref_cmds=("${cmds_arj[@]}") ;;
+        "application/x-bzip-compressed-tar") pref_cmds=("${cmds_tar_bz[@]}") ;;
+        "application/x-bzip") pref_cmds=("${cmds_bz[@]}") ;;
+        "application/x-bzip2" | "application/bzip2") pref_cmds=("${cmds_bz[@]}") ;;
+        "application/x-bzip3") pref_cmds=("${cmds_bz3[@]}") ;;
+        "application/x-compress") pref_cmds=("${cmds_z[@]}") ;;
+        "application/x-compressed-tar") pref_cmds=("${cmds_tar_gz[@]}") ;;
+        "application/x-cpio") pref_cmds=("${cmds_cpio[@]}") ;;
+        "application/x-dar") pref_cmds=("${cmds_dar[@]}") ;;
+        "application/x-gzip" | "application/gzip") pref_cmds=("${cmds_gz[@]}") ;;
+        "application/x-iso9660-image") pref_cmds=("${cmds_iso[@]}") ;;
+        "application/x-lha" | "application/x-lzh-compressed") pref_cmds=("${cmds_lzh[@]}") ;;
+        "application/x-lrzip-compressed-tar") pref_cmds=("${cmds_tar_lrz[@]}") ;;
+        "application/x-lrzip") pref_cmds=("${cmds_lrz[@]}") ;;
+        "application/x-lz4-compressed-tar") pref_cmds=("${cmds_tar_lz4[@]}") ;;
+        "application/x-lz4") pref_cmds=("${cmds_lz4[@]}") ;;
+        "application/x-lzip-compressed-tar") pref_cmds=("${cmds_tar_lz[@]}") ;;
+        "application/x-lzip") pref_cmds=("${cmds_lz[@]}") ;;
+        "application/x-lzma-compressed-tar") pref_cmds=("${cmds_tar_lzma[@]}") ;;
+        "application/x-lzma") pref_cmds=("${cmds_lzma[@]}") ;;
+        "application/x-lzop") pref_cmds=("${cmds_lzo[@]}") ;;
+        "application/x-msi") pref_cmds=("${cmds_msi[@]}") ;;
+        "application/x-rar" | "application/x-rar-compressed" | "application/vnd.rar") pref_cmds=("${cmds_rar[@]}") ;;
+        "application/x-rpm") pref_cmds=("${cmds_rpm[@]}") ;;
+        "application/x-tar") pref_cmds=("${cmds_tar[@]}") ;;
+        "application/x-tarz") pref_cmds=("${cmds_tar_z[@]}") ;;
+        "application/x-tzo") pref_cmds=("${cmds_tar_lzo[@]}") ;;
+        "application/x-xar") pref_cmds=("${cmds_xar[@]}") ;;
+        "application/x-xz-compressed-tar") pref_cmds=("${cmds_tar_xz[@]}") ;;
+        "application/x-xz") pref_cmds=("${cmds_xz[@]}") ;;
+        "application/x-zip" | "application/x-zip-compressed" | "application/zip" | "application/vnd.android.package-archive" | "application/java-archive") pref_cmds=("${cmds_zip[@]}") ;;
+        "application/x-zstd-compressed-tar") pref_cmds=("${cmds_tar_zst[@]}") ;;
+        "application/zstd") pref_cmds=("${cmds_zstd[@]}") ;;
+        "application/octet-stream")
+            # For generic binary files, try further identification.
+            local file_information=""
+            file_information=$(LC_ALL=C file --dereference --brief \
+                -- "$input_file" 2>/dev/null)
+
+            case "${file_information,,}" in
+            "gpg "* | "pgp "*) pref_cmds=("${cmds_gpg[@]}") ;;
+            *)
+                # Default extractor chain for unknown binary files.
+                pref_cmds=("${cmds_unknown_file[@]}")
+                ;;
+            esac
+            ;;
+        *)
+            # Default extractor chain for unknown files.
+            pref_cmds=("${cmds_unknown_file[@]}")
+            ;;
+        esac
+        ;;
+    esac
+
+    # Determine the command to use based on the command status.
+    if [[ "$command_status" == "default" ]]; then
+        # Use the first preferred command as the default.
+        command=${pref_cmds[0]}
+    elif [[ "$command_status" == "available" ]]; then
+        # Find the first available command on the system.
+        local pref_command=""
+        for pref_command in "${pref_cmds[@]}"; do
+            if [[ "$pref_command" == *","* ]]; then
+                # Check if all commands in a composite command exist.
+                if _all_commands_exists "${pref_command//,/ }"; then
+                    command=$pref_command
+                    break
+                fi
+            elif _command_exists "$pref_command"; then
+                # Use the first available command.
+                command=$pref_command
+                break
+            fi
+        done
+    fi
+
+    printf "%s" "$command"
+}
+
+# Function: _all_commands_exists
+#
+# Description:
+#   This function checks if all commands of a list exist on the system.
+#
+# Parameters:
+#   $1 (commands): A space-separated list of command names.
+#
+# Returns:
+#   0 (true): If all commands exist.
+#   1 (false): If any command does not exist.
+_all_commands_exists() {
+    local commands=$1
+
+    local commands_array=()
+    IFS=" " read -r -a commands_array <<<"$commands"
+
+    local command=""
+    for command in "${commands_array[@]}"; do
+        if ! _command_exists "$command"; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+# Function: _run_command
+#
+# Description:
+#   This function extracts an archive using the given command. If the archive
+#   is password protected, it asks the user for the password and tries again.
+#   The extracted items are moved to the output directory.
+#
+# Parameters:
+#   $1 (input_file): The archive file to be extracted.
+#   $2 (command): The command used to extract the archive.
+#   $3 (output_dir): The directory where the extracted items will be placed.
+#      If empty, the directory of the input file is used.
+#
+# Returns:
+#   0 (true): If the archive was extracted successfully.
+#   1 (false): If the extraction failed or no items were extracted.
+_run_command() {
+    local input_file=$1
+    local command=$2
+    local output_dir=$3
+    local exit_code=0
+    local basename=""
+    local filename=""
+    local std_output=""
+    local temp_dir_extract=""
+    local temp_dir_extract_cat=""
+
+    if [[ -z "$output_dir" ]]; then
+        output_dir=$(dirname -- "$input_file")
+    fi
+
+    # Remove the path.
+    basename=$(basename -- "$input_file")
+
+    filename="$basename"
+    filename=$(_strip_filename_multipart "$filename")
+    filename=$(_strip_filename_extension "$filename")
+
+    __temp_dir_push() {
+        temp_dir_extract=$(_make_temp_dir_local "$output_dir" "$filename")
+        _directory_push "$temp_dir_extract" || return 1
+    }
+    __temp_dir_pop() {
+        _directory_pop || return 1
+    }
+    __temp_dir_remove() {
+        rm -rf -- "$temp_dir_extract" 2>/dev/null
+        rm -rf -- "$temp_dir_extract_cat" 2>/dev/null
+    }
+    __get_password() {
+        _display_password_box "$(_i18n 'Enter the password for the archive:') '$basename'"
+    }
+    __cmd_7z() {
+        if _command_exists "7z"; then
+            _run_in_sandbox "$output_dir" "false" 7z "$@"
+        elif _command_exists "7za"; then
+            _run_in_sandbox "$output_dir" "false" 7za "$@"
+        else
+            _run_in_sandbox "$output_dir" "false" \
+                "$(compgen -c 7z | head -n 1)" "$@"
+        fi
+    }
+
+    # Ensure the input file has an absolute path before proceeding.
+    if [[ $input_file != "/"* ]]; then
+        input_file=$(readlink -f "$input_file")
+    fi
+
+    # For split archives ('.000' or '.001'), join the parts into a temporary
+    # file and extract the joined file.
+    if [[ "${input_file,,}" =~ \.[0-9]+$ ]]; then
+        temp_dir_extract_cat=$(_make_temp_dir_local "$output_dir" "$filename")
+        input_file=$(_concat_file "$input_file" "$temp_dir_extract_cat") || return 1
+    fi
+
+    # Use a local temporary directory to work.
+    __temp_dir_push || return 1
+
+    case "$command" in
+    "7za")
+        std_output=$(__cmd_7z x -aoa -p"$TASK_PASSWORD" -- "$input_file" 2>&1)
+        exit_code=$?
+
+        if ((exit_code != 0)) && grep --quiet --ignore-case "wrong password" <<<"$std_output"; then
+            local password=""
+            __temp_dir_pop && __temp_dir_remove
+            password=$(__get_password) || return 1
+            __temp_dir_push || return 1
+            std_output=$(__cmd_7z x -aoa -p"$password" -- "$input_file" 2>&1)
+            exit_code=$?
+        fi
+        ;;
+    "ar") std_output=$(_run_in_sandbox "$output_dir" "false" ar x -- "$input_file" 2>&1) ;;
+    "bsdtar")
+        std_output=$(_run_in_sandbox "$output_dir" "false" bsdtar --passphrase "$TASK_PASSWORD" -xf "$input_file" 2>&1)
+        exit_code=$?
+
+        if ((exit_code != 0)) && grep --quiet --ignore-case "incorrect passphrase" <<<"$std_output"; then
+            local password=""
+            __temp_dir_pop && __temp_dir_remove
+            password=$(__get_password) || return 1
+            __temp_dir_push || return 1
+            std_output=$(_run_in_sandbox "$output_dir" "false" bsdtar --passphrase "$password" -xf "$input_file" 2>&1)
+            exit_code=$?
+        fi
+        ;;
+    "bzip2") _run_in_sandbox "$output_dir" "false" bzip2 -d -c -k -- "$input_file" >"$filename" 2>/dev/null ;;
+    "bzip3") _run_in_sandbox "$output_dir" "false" bzip3 -d -c -- "$input_file" >"$filename" 2>/dev/null ;;
+    "cabextract") std_output=$(_run_in_sandbox "$output_dir" "false" cabextract "$input_file" 2>&1) ;;
+    "cpio") std_output=$(_run_in_sandbox "$output_dir" "false" cpio -idv <"$input_file" 2>&1) ;;
+    "dar") std_output=$(_run_in_sandbox "$output_dir" "false" dar -x "$input_file" 2>&1) ;;
+    "gpg")
+        std_output=$(gpg --batch --yes --decrypt --output "$filename" -- "$input_file" 2>&1)
+        local file_mime=""
+        file_mime=$(_get_file_mime "$filename")
+        if [[ "$file_mime" == "application/x-tar" ]]; then
+            # Create a temporary local directory for extraction.
+            local temp_dir_extract_tar=""
+            temp_dir_extract_tar=$(_make_temp_dir_local "$output_dir" "$filename")
+            mv -- "$filename" "$temp_dir_extract_tar/$filename"
+            std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --file="$temp_dir_extract_tar/$filename" 2>&1)
+            exit_code=$?
+            # Remove the temporary directory (local directory).
+            rm -rf -- "$temp_dir_extract_tar"
+        fi
+        ;;
+    "gzip")
+        # Get the original filename stored in the gzip archive, if available.
+        local saved_filename=""
+        saved_filename=$(_run_in_sandbox "$output_dir" "false" gzip -l -N "$input_file" 2>/dev/null |
+            tail -n 1 | cut -d "%" -f 2- | sed "s|^ ||")
+        if [[ -n "$saved_filename" ]] && [[ "$saved_filename" != "$input_file" ]]; then
+            filename=$(basename "$saved_filename")
+        fi
+        # Extract the gzip archive to the determined filename.
+        _run_in_sandbox "$output_dir" "false" gzip -d -c -k -- "$input_file" >"$filename" 2>/dev/null
+        ;;
+    "lha") std_output=$(_run_in_sandbox "$output_dir" "false" lha -e "$input_file" 2>&1) ;;
+    "lrzip") std_output=$(_run_in_sandbox "$output_dir" "false" lrzip -d -o "$temp_dir_extract/$filename" -- "$input_file" 2>&1) ;;
+    "lz4") _run_in_sandbox "$output_dir" "false" lz4 -d -c -- "$input_file" >"$filename" 2>/dev/null ;;
+    "lzip") _run_in_sandbox "$output_dir" "false" lzip -d -c -k -- "$input_file" >"$filename" 2>/dev/null ;;
+    "lzop")
+        # Get the original filename stored in the gzip archive, if available.
+        local saved_filename=""
+        saved_filename=$(_run_in_sandbox "$output_dir" "false" lzop -l -N "$input_file" 2>/dev/null |
+            tail -n 1 | cut -d "%" -f 2- | sed "s|^ ||")
+        if [[ -n "$saved_filename" ]] && [[ "$saved_filename" != "$input_file" ]]; then
+            filename=$(basename "$saved_filename")
+        fi
+        # Extract the gzip archive to the determined filename.
+        _run_in_sandbox "$output_dir" "false" lzop -d -c -- "$input_file" >"$filename" 2>/dev/null
+        ;;
+    "rdsquashfs") std_output=$(_run_in_sandbox "$output_dir" "false" rdsquashfs -u . -- "$input_file" 2>&1) ;;
+    "tar,bzip2") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --bzip2 --file="$input_file" 2>&1) ;;
+    "tar,gzip") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --gzip --file="$input_file" 2>&1) ;;
+    "tar,lrzip") std_output=$(_run_in_sandbox "$output_dir" "false" lrztar -d "$input_file" 2>&1) ;;
+    "tar,lzip") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --lzip --file="$input_file" 2>&1) ;;
+    "tar,lz4") std_output=$(_run_in_sandbox "$output_dir" "false" lz4 -d -c -- "$input_file" | _run_in_sandbox "$output_dir" "false" tar xf -) ;;
+    "tar,lzma") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --lzma --file="$input_file" 2>&1) ;;
+    "tar,lzop") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --lzop --file="$input_file" 2>&1) ;;
+    "tar,xz") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --xz --file="$input_file" 2>&1) ;;
+    "tar,zstd") std_output=$(_run_in_sandbox "$output_dir" "false" zstd -f -d -c -- "$input_file" | _run_in_sandbox "$output_dir" "false" tar xf -) ;;
+    "tar") std_output=$(_run_in_sandbox "$output_dir" "false" tar --extract --file="$input_file" 2>&1) ;;
+    "unrar")
+        std_output=$(_run_in_sandbox "$output_dir" "false" unrar x -p"$TASK_PASSWORD" -- "$input_file" 2>&1)
+        exit_code=$?
+
+        if ((exit_code != 0)) && grep --quiet --ignore-case "password" <<<"$std_output"; then
+            local password=""
+            __temp_dir_pop && __temp_dir_remove
+            password=$(__get_password) || return 1
+            __temp_dir_push || return 1
+            std_output=$(_run_in_sandbox "$output_dir" "false" unrar x -p"$password" -- "$input_file" 2>&1)
+            exit_code=$?
+        fi
+        ;;
+    "unsquashfs") std_output=$(_run_in_sandbox "$output_dir" "false" unsquashfs "$input_file" 2>&1) ;;
+    "xorriso") std_output=$(_run_in_sandbox "$output_dir" "false" xorriso -osirrox on -indev "$input_file" -- -extract / . -rollback_end 2>&1) ;;
+    "xz") _run_in_sandbox "$output_dir" "false" xz -d -c -k -- "$input_file" >"$filename" 2>/dev/null ;;
+    "zpaq") std_output=$(_run_in_sandbox "$output_dir" "false" zpaq x "$input_file" 2>&1) ;;
+    "zstd") _run_in_sandbox "$output_dir" "false" zstd -d -c -- "$input_file" >"$filename" 2>/dev/null ;;
+    "bsdtar,7za")
+        exit_code=1
+        # Default extractor chain for unrecognized files.
+        # Try to extract with 'bsdtar'.
+        if ((exit_code != 0)); then
+            std_output=$(_run_in_sandbox "$output_dir" "false" bsdtar -xf "$input_file" 2>&1)
+            exit_code=$?
+        fi
+
+        # Try to extract with '7za'.
+        if ((exit_code != 0)); then
+            std_output=$(__cmd_7z x -aoa -- "$input_file" 2>&1)
+            exit_code=$?
+        fi
+
+        if ((exit_code != 0)); then
+            std_output="Could not recognize the archive format."
+        fi
+        ;;
+    esac
+
+    # Check for result errors.
+    local exit_code_last=$?
+    if ((exit_code != 0)) || ((exit_code_last != 0)); then
+        _check_output "1" "$std_output" "$input_file" ""
+
+        # If all extracted files have zero bytes, then abort.
+        local non_zero_files=""
+        non_zero_files=$(find . -type f ! -size 0 2>/dev/null)
+        if [[ -z "$non_zero_files" ]]; then
+            __temp_dir_pop && __temp_dir_remove
+            return 1
+        fi
+    fi
+
+    # Fix permissions of extracted files in 'iso' archive format.
+    if [[ "${input_file,,}" == *".iso" ]]; then
+        chmod --recursive u+rw -- .
+    fi
+
+    # Get the list of root items (files or directories)
+    # in the 'temp_dir_extract' directory.
+    local root_items=""
+    root_items=$(find . -mindepth 1 -maxdepth 1 2>/dev/null)
+
+    # Count the number of items.
+    local count_root_items=""
+    count_root_items=$(wc -l <<<"$root_items")
+
+    # Check if the 'temp_dir_extract' has just one item.
+    local single_root_item=""
+    if ((count_root_items == 1)); then
+        single_root_item="${root_items#./}"
+    fi
+
+    # Check if the 'temp_dir_extract' is empty.
+    if ((count_root_items == 0)); then
+        __temp_dir_pop && __temp_dir_remove
+        return 1
+    fi
+
+    __temp_dir_pop || return 1
+
+    # Move the items to the correct directory.
+    if [[ "$single_root_item" == "$filename" ]] ||
+        [[ "$(_strip_filename_extension "$single_root_item")" == "$filename" ]]; then
+        # For archives with "one item with the same name of the archive".
+        # For example: 'README.txt.tar.gz' or 'README.tar.gz'.
+        _move_file "rename" "$temp_dir_extract/$single_root_item" "$output_dir/$single_root_item"
+    elif [[ "$single_root_item" == "squashfs-root" ]] &&
+        [[ "$command" == "unsquashfs" ]]; then
+        # For the 'squashfs' archive format.
+        _move_file "rename" "$temp_dir_extract/$single_root_item" "$output_dir/$filename"
+    else
+        # For archives with "one item with a different name of the archive"
+        # or "multiple items".
+        _move_file "rename" "$temp_dir_extract" "$output_dir/$filename"
+    fi
+
+    __temp_dir_remove
+}
+
+_main "$@"
