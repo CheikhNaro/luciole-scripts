@@ -4,6 +4,12 @@ Custom actions for the [Luciole](https://github.com/noctalia-dev/luciole) file m
 
 **290 actions** in **13 categories** (Archive, Audio & Video, Checksum, Clipboard, Files, Document, Encryption, Image, Links, Network, Open with, Rename, Security).
 
+
+
+https://github.com/user-attachments/assets/894cf0ba-a28f-4f59-bce5-ab97dddbaa10
+
+
+
 ## How it works
 
 Luciole only scans the first level of the scripts folder and caps the display at **64 entries**. The installer works around this with a two-level design:
