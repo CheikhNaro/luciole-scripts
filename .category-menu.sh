@@ -239,7 +239,7 @@ _show_action_dialog() {
 
     dialog+=(--title "$title")
     dialog+=(--list --no-markup)
-    dialog+=(--width=900 --height=550)
+    dialog+=(--width=500 --height=485)
 
     if [[ "$has_folders" == "true" ]]; then
         dialog+=(--column "Action" --column "$(_i18n 'Directory')" --column "Path")
@@ -313,7 +313,7 @@ _choose_subdir() {
 
     dialog+=(--title "$_category_display")
     dialog+=(--list --no-markup)
-    dialog+=(--width=700 --height=450)
+    dialog+=(--width=500 --height=485)
     dialog+=(--column "$(_i18n 'Directory')" --column "Path")
     dialog+=(--hide-column=2 --print-column=2)
 
