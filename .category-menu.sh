@@ -259,12 +259,12 @@ _show_action_dialog() {
 
     if command -v "zenity" &>/dev/null; then
         tool="zenity"
-        user_selection=$(zenity "${dialog[@]}" \
+        user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" \
             --ok-label "$(_i18n 'OK')" \
             --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
     elif command -v "yad" &>/dev/null; then
         tool="yad"
-        user_selection=$(yad "${dialog[@]}" \
+        user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" \
             --button="$(_i18n 'Cancel'):1" \
             --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
     else
@@ -325,12 +325,12 @@ _choose_subdir() {
 
     if command -v "zenity" &>/dev/null; then
         tool="zenity"
-        user_selection=$(zenity "${dialog[@]}" \
+        user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" \
             --ok-label "$(_i18n 'OK')" \
             --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
     elif command -v "yad" &>/dev/null; then
         tool="yad"
-        user_selection=$(yad "${dialog[@]}" \
+        user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" \
             --button="$(_i18n 'Cancel'):1" \
             --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
     else
