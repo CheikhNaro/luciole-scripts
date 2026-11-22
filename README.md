@@ -5,9 +5,9 @@ Custom actions for the [Luciole](https://github.com/noctalia-dev/luciole) file m
 **290 actions** in **13 categories** (Archive, Audio & Video, Checksum, Clipboard, Files, Document, Encryption, Image, Links, Network, Open with, Rename, Security).
 
 
+## DEMO
 
-https://github.com/user-attachments/assets/894cf0ba-a28f-4f59-bce5-ab97dddbaa10
-
+https://github.com/user-attachments/assets/f2b56156-21d1-4b29-80f7-5a4443038cd7
 
 
 ## How it works
