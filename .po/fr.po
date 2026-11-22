@@ -578,6 +578,18 @@ msgid "Document: Text files"
 msgstr "Document: Fichiers texte"
 
 #: Menu
+msgid "Back"
+msgstr "Retour"
+
+#: Menu
+msgid "Categories"
+msgstr "Catégories"
+
+#: Menu
+msgid "Category"
+msgstr "Catégorie"
+
+#: Menu
 msgid "Image: Color"
 msgstr "Image: Couleur"
 

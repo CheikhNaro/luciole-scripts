@@ -86,7 +86,20 @@ _i18n() {
     if [[ -n "${I18N_DATA[$msgid]:-}" ]]; then
         printf "%s" "${I18N_DATA[$msgid]}"
     else
-        printf "%s" "$msgid"
+        case "$msgid" in
+        "Back")
+            [[ "${LANG:-}" =~ ^fr ]] && printf "Retour" || printf "Back"
+            ;;
+        "Categories")
+            [[ "${LANG:-}" =~ ^fr ]] && printf "Catégories" || printf "Categories"
+            ;;
+        "Category")
+            [[ "${LANG:-}" =~ ^fr ]] && printf "Catégorie" || printf "Category"
+            ;;
+        *)
+            printf "%s" "$msgid"
+            ;;
+        esac
     fi
 }
 
@@ -226,16 +239,72 @@ _get_dialog_bin() {
     fi
 }
 
+_choose_category() {
+    local cat_dir=""
+    local cat_name=""
+    local cat_display=""
+    local count=0
+    local dialog_bin=""
+    local user_selection=""
+    local -a items=()
+
+    while IFS= read -r -d '' cat_dir; do
+        cat_name=$(basename -- "$cat_dir")
+        cat_display=$(_i18n "$cat_name")
+        count=$(find "$cat_dir" -name '.*' -prune -o -type f -printf '.' 2>/dev/null | wc -c)
+        count=${count//[[:space:]]/}
+        items+=("$cat_display ($count)"$'\t'""$'\t'"$cat_name")
+    done < <(find "$SCRIPT_DIR" -mindepth 1 -maxdepth 1 -type d ! -name '.*' -print0 2>/dev/null | LC_ALL=C sort -z)
+
+    ((${#items[@]} == 0)) && return 1
+
+    dialog_bin=$(_get_dialog_bin)
+    if [[ -n "$dialog_bin" ]]; then
+        user_selection=$(printf "%s\n" "${items[@]}" | "$dialog_bin" --title "$(_i18n 'Categories')" --width 450 --height 490 2>/dev/null) || return 1
+    elif command -v "zenity" &>/dev/null; then
+        local -a dialog=(--title "$(_i18n 'Categories')" --list --no-markup --width=450 --height=490)
+        dialog+=(--column "$(_i18n 'Category')" --column "Name" --hide-column=2 --print-column=2)
+        for cat_dir in "${items[@]}"; do
+            local disp="" val=""
+            disp="${cat_dir%%$'\t'*}"
+            val="${cat_dir##*$'\t'}"
+            dialog+=("$disp" "$val")
+        done
+        user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" --ok-label "$(_i18n 'OK')" --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
+    elif command -v "yad" &>/dev/null; then
+        local -a dialog=(--title "$(_i18n 'Categories')" --list --no-markup --width=450 --height=490)
+        dialog+=(--column "$(_i18n 'Category')" --column "Name" --hide-column=2 --print-column=2)
+        for cat_dir in "${items[@]}"; do
+            local disp="" val=""
+            disp="${cat_dir%%$'\t'*}"
+            val="${cat_dir##*$'\t'}"
+            dialog+=("$disp" "$val")
+        done
+        user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" --button="$(_i18n 'Cancel'):1" --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
+        user_selection=${user_selection%|}
+    else
+        printf "A dialog tool is required: luciole-dialog, zenity, or yad.\n" >&2
+        return 1
+    fi
+
+    user_selection=${user_selection%$'\n'}
+    [[ -z "$user_selection" ]] && return 1
+    printf "%s" "$user_selection"
+    return 0
+}
+
 _show_action_dialog() {
     local title=$1
+    local has_back=${2:-false}
     local i=0
     local user_selection=""
     local dialog_bin=""
     local -a items=()
 
-    if ((${#ROW_PATH[@]} == 0)); then
-        printf "No action found.\n" >&2
-        return 1
+    if [[ "$has_back" == "true" ]]; then
+        items+=("← $(_i18n 'Back')"$'\t'""$'\t'"__BACK__")
+    else
+        items+=("← $(_i18n 'Categories')"$'\t'""$'\t'"__ALL_CATEGORIES__")
     fi
 
     for i in "${!ROW_PATH[@]}"; do
@@ -252,6 +321,11 @@ _show_action_dialog() {
     elif command -v "zenity" &>/dev/null; then
         local -a dialog=(--title "$title" --list --no-markup --width=450 --height=490)
         dialog+=(--column "Action" --column "$(_i18n 'Directory')" --column "Path" --hide-column=3 --print-column=3)
+        if [[ "$has_back" == "true" ]]; then
+            dialog+=("← $(_i18n 'Back')" "" "__BACK__")
+        else
+            dialog+=("← $(_i18n 'Categories')" "" "__ALL_CATEGORIES__")
+        fi
         for i in "${!ROW_PATH[@]}"; do
             dialog+=("${ROW_DISPLAY[$i]}" "${ROW_FOLDER[$i]}" "${ROW_PATH[$i]}")
         done
@@ -259,6 +333,11 @@ _show_action_dialog() {
     elif command -v "yad" &>/dev/null; then
         local -a dialog=(--title "$title" --list --no-markup --width=450 --height=490)
         dialog+=(--column "Action" --column "$(_i18n 'Directory')" --column "Path" --hide-column=3 --print-column=3)
+        if [[ "$has_back" == "true" ]]; then
+            dialog+=("← $(_i18n 'Back')" "" "__BACK__")
+        else
+            dialog+=("← $(_i18n 'Categories')" "" "__ALL_CATEGORIES__")
+        fi
         for i in "${!ROW_PATH[@]}"; do
             dialog+=("${ROW_DISPLAY[$i]}" "${ROW_FOLDER[$i]}" "${ROW_PATH[$i]}")
         done
@@ -308,6 +387,7 @@ _choose_subdir() {
     for i in "${!subdirs[@]}"; do
         items+=("${labels[$i]} (${counts[$i]})"$'\t'""$'\t'"${subdirs[$i]}")
     done
+    items+=("← $(_i18n 'Categories')"$'\t'""$'\t'"__ALL_CATEGORIES__")
 
     dialog_bin=$(_get_dialog_bin)
     if [[ -n "$dialog_bin" ]]; then
@@ -319,6 +399,7 @@ _choose_subdir() {
         for i in "${!subdirs[@]}"; do
             dialog+=("${labels[$i]} (${counts[$i]})" "${subdirs[$i]}")
         done
+        dialog+=("← $(_i18n 'Categories')" "__ALL_CATEGORIES__")
         user_selection=$(GDK_BACKEND=x11 zenity "${dialog[@]}" --ok-label "$(_i18n 'OK')" --cancel-label "$(_i18n 'Cancel')" 2>/dev/null) || return 1
     elif command -v "yad" &>/dev/null; then
         local -a dialog=(--title "$_category_display" --list --no-markup --width=450 --height=490)
@@ -327,6 +408,7 @@ _choose_subdir() {
         for i in "${!subdirs[@]}"; do
             dialog+=("${labels[$i]} (${counts[$i]})" "${subdirs[$i]}")
         done
+        dialog+=("← $(_i18n 'Categories')" "__ALL_CATEGORIES__")
         user_selection=$(GDK_BACKEND=x11 yad "${dialog[@]}" --button="$(_i18n 'Cancel'):1" --button="$(_i18n 'OK'):0" 2>/dev/null) || return 1
         user_selection=${user_selection%|}
     else
@@ -351,34 +433,73 @@ if [[ "$_mode" == "list" ]]; then
     exit 0
 fi
 
-subdir_count=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type d \
-    ! -name '.*' -printf '.' 2>/dev/null | wc -c)
-subdir_count=${subdir_count//[[:space:]]/}
-direct_count=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type f \
-    ! -name '.*' -printf '.' 2>/dev/null | wc -c)
-direct_count=${direct_count//[[:space:]]/}
+while true; do
+    _category_dir="$SCRIPT_DIR/$_category"
+    _category_display=$(_i18n "$_category")
 
-if ((subdir_count > 1)) ||
-    { ((subdir_count == 1)) && ((direct_count > 0)); }; then
-    choice=$(_choose_subdir) || exit 0
-    if [[ "$choice" == "__ALL__" ]]; then
-        _collect_rows "$_category_dir" "true"
-        title="$_category_display (${#ROW_PATH[@]})"
+    subdir_count=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type d \
+        ! -name '.*' -printf '.' 2>/dev/null | wc -c)
+    subdir_count=${subdir_count//[[:space:]]/}
+    direct_count=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type f \
+        ! -name '.*' -printf '.' 2>/dev/null | wc -c)
+    direct_count=${direct_count//[[:space:]]/}
+
+    if ((subdir_count > 1)) ||
+        { ((subdir_count == 1)) && ((direct_count > 0)); }; then
+        while true; do
+            choice=$(_choose_subdir)
+            status=$?
+            if [[ $status -ne 0 || -z "$choice" ]]; then
+                exit 0
+            fi
+
+            if [[ "$choice" == "__ALL_CATEGORIES__" ]]; then
+                new_cat=$(_choose_category) || continue
+                [[ -n "$new_cat" ]] && _category="$new_cat"
+                break
+            fi
+
+            if [[ "$choice" == "__ALL__" ]]; then
+                _collect_rows "$_category_dir" "true"
+                title="$_category_display (${#ROW_PATH[@]})"
+            else
+                _collect_rows "$choice" "false"
+                title="$(_i18n "$(basename -- "$choice")") (${#ROW_PATH[@]})"
+            fi
+
+            selected=$(_show_action_dialog "$title" "true")
+            status=$?
+            if [[ $status -ne 0 || "$selected" == "__BACK__" || -z "$selected" ]]; then
+                continue
+            fi
+
+            _run_action "$selected" "$@"
+            exit $?
+        done
     else
-        _collect_rows "$choice" "false"
-        title="$(_i18n "$(basename -- "$choice")") (${#ROW_PATH[@]})"
+        if ((subdir_count == 1)); then
+            choice=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type d \
+                ! -name '.*' -print -quit 2>/dev/null)
+            _collect_rows "$choice" "false"
+            title="$(_i18n "$(basename -- "$choice")") (${#ROW_PATH[@]})"
+        else
+            _collect_rows "$_category_dir" "false"
+            title="$_category_display (${#ROW_PATH[@]})"
+        fi
+
+        selected=$(_show_action_dialog "$title" "false")
+        status=$?
+        if [[ $status -ne 0 || -z "$selected" ]]; then
+            exit 0
+        fi
+
+        if [[ "$selected" == "__ALL_CATEGORIES__" ]]; then
+            new_cat=$(_choose_category) || continue
+            [[ -n "$new_cat" ]] && _category="$new_cat"
+            continue
+        fi
+
+        _run_action "$selected" "$@"
+        exit $?
     fi
-elif ((subdir_count == 1)); then
-    choice=$(find "$_category_dir" -mindepth 1 -maxdepth 1 -type d \
-        ! -name '.*' -print -quit 2>/dev/null)
-    _collect_rows "$choice" "false"
-    title="$(_i18n "$(basename -- "$choice")") (${#ROW_PATH[@]})"
-else
-    _collect_rows "$_category_dir" "false"
-    title="$_category_display (${#ROW_PATH[@]})"
-fi
-
-selected=$(_show_action_dialog "$title") || exit 0
-[[ -z "$selected" ]] && exit 0
-
-_run_action "$selected" "$@"
+done

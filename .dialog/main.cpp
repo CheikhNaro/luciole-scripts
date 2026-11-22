@@ -312,13 +312,9 @@ namespace {
     pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_BOLD);
     pango_layout_set_font_description(layout, fontDesc);
 
-    // Category folder icon representation (small rounded indicator + text)
-    setCairoColor(cr, app.palette.primary);
-    drawRoundedRect(cr, 16, 16, 16, 14, 3);
-    cairo_fill(cr);
-
+    setCairoColor(cr, app.palette.onSurface);
     pango_layout_set_text(layout, app.title.c_str(), -1);
-    cairo_move_to(cr, 40, 14);
+    cairo_move_to(cr, 16, 14);
     pango_cairo_show_layout(cr, layout);
 
     // Header separator line
@@ -382,8 +378,9 @@ namespace {
 
       bool isSelected = (idx == app.selected_idx);
       bool isHovered = (idx == app.hovered_idx);
+      bool isHighlighted = (isSelected || isHovered);
 
-      if (isSelected) {
+      if (isHighlighted) {
         setCairoColor(cr, app.palette.surfaceContainerHigh);
         drawRoundedRect(cr, inputX, curY, inputW, itemH - 4, 6);
         cairo_fill(cr);
@@ -392,18 +389,13 @@ namespace {
         setCairoColor(cr, app.palette.primary);
         drawRoundedRect(cr, inputX + 2, curY + 4, 3, itemH - 12, 1.5);
         cairo_fill(cr);
-      } else if (isHovered) {
-        setCairoColor(cr, app.palette.hover);
-        drawRoundedRect(cr, inputX, curY, inputW, itemH - 4, 6);
-        cairo_fill(cr);
       }
 
-      // Item Name — text always onSurface (readable); primary accent shown via sidebar bar only
-      if (isSelected) {
-        setCairoColor(cr, app.palette.onSurface);
+      // Item Name — same readable color whether selected or hovered
+      setCairoColor(cr, app.palette.onSurface);
+      if (isHighlighted) {
         pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_BOLD);
       } else {
-        setCairoColor(cr, app.palette.onSurface);
         pango_font_description_set_weight(fontDesc, PANGO_WEIGHT_NORMAL);
       }
       pango_layout_set_font_description(layout, fontDesc);
@@ -463,8 +455,9 @@ namespace {
       int v = static_cast<int>((y - 98) / 36);
       int target = app->scroll_offset + v;
       if (target >= 0 && target < static_cast<int>(app->filtered_indices.size())) {
-        if (app->hovered_idx != target) {
+        if (app->hovered_idx != target || app->selected_idx != target) {
           app->hovered_idx = target;
+          app->selected_idx = target;
           if (app->configured) redraw(*app);
         }
         return;
